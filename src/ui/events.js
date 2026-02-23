@@ -1,8 +1,10 @@
-// src/ui/events.js
+﻿// src/ui/events.js
 
 import { UI } from "../app/constants.js";
 import { $ } from "./dom.js";
 import { openModal, closeModal } from "./modals.js";
+import { showSystemAlert, showSystemConfirm, showActionToast } from "./feedback.js";
+import { FEEDBACK_TOASTS } from "./toastMessages.js";
 
 import {
   renderApp,
@@ -115,11 +117,11 @@ export function bindUIEvents(state) {
   });
   $(UI.BTN_MAX_PENALTY).addEventListener("click", async () => {
     if (isCurrentDayReadOnly(state)) {
-      alert("Dia anterior em modo somente leitura.");
+      uiAlertInfo("Dia anterior em modo somente leitura.");
       return;
     }
 
-    const ok = confirm(
+    const ok = await uiConfirmAction(
       "Aplicar Penalidade Maxima agora? Isso vai zerar os pontos do dia e a carteira semanal."
     );
     if (!ok) return;
@@ -156,9 +158,9 @@ export function bindUIEvents(state) {
 
       await renderApp(state);
       await renderRewardsModal(state);
-      alert(`Penalidade maxima aplicada. Total penalizado: ${totalPenalizedPoints} pts.`);
+      uiToast(FEEDBACK_TOASTS.penaltyApplied(totalPenalizedPoints));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
   $("#btnOpenHabits").addEventListener("click", async () => {
@@ -190,21 +192,18 @@ export function bindUIEvents(state) {
       await refreshCategorySelectOptions(state);
       await renderCategoriesCrudList(state);
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.categoryCreated(name));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
   $("#btnSyncPendingDefaults").addEventListener("click", async () => {
     try {
       const result = await syncMissingDefaultTasksForCurrentDay(state);
       await renderApp(state);
-      if ((result?.createdCount || 0) > 0) {
-        alert(`${result.createdCount} task(s) do template adicionada(s) ao dia.`);
-      } else {
-        alert("Nenhuma task faltante no template para adicionar.");
-      }
+      uiToast(FEEDBACK_TOASTS.templatesSynced(result?.createdCount || 0));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
   $(UI.BTN_OPEN_WEEKLY_GOAL).addEventListener("click", async () => {
@@ -217,7 +216,7 @@ export function bindUIEvents(state) {
   });
   $(UI.BTN_SAVE_WEEKLY_GOAL).addEventListener("click", async () => {
     if (isCurrentDayReadOnly(state)) {
-      alert("Dia anterior em modo somente leitura.");
+      uiAlertInfo("Dia anterior em modo somente leitura.");
       return;
     }
     try {
@@ -238,8 +237,9 @@ export function bindUIEvents(state) {
       setWeeklyGoalFormLocked(true);
       closeModal(UI.MODAL_WEEKLY_GOAL);
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.weeklyGoalCreated(payload));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -254,8 +254,9 @@ export function bindUIEvents(state) {
         exportedAt: payload.exportedAt,
       });
       dataMenu.close();
+      uiToast(FEEDBACK_TOASTS.backupExported(`taskpoints-backup-${stamp}.json`));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -270,7 +271,7 @@ export function bindUIEvents(state) {
     const file = e.target?.files?.[0];
     if (!file) return;
 
-    const ok = confirm(
+    const ok = await uiConfirmAction(
       "Importar backup vai substituir todos os dados atuais. Deseja continuar?"
     );
     if (!ok) return;
@@ -291,9 +292,9 @@ export function bindUIEvents(state) {
       });
 
       await renderApp(state);
-      alert("Backup importado com sucesso.");
+      uiToast(FEEDBACK_TOASTS.backupImported(Object.keys(payload?.data || {}).length));
     } catch (err) {
-      alert(err?.message || "Falha ao importar backup.");
+      uiAlertError(err?.message || "Falha ao importar backup.");
     }
   });
 
@@ -304,8 +305,8 @@ export function bindUIEvents(state) {
     const aversion = $("#defaultTaskAversionInput")?.value || "";
     const impact = $("#defaultTaskImpactInput")?.value || "";
     const points = refreshDefaultTaskPoints();
-    if (!name) return alert("Informe o nome da task padrao.");
-    if (!Number.isFinite(points) || points <= 0) return alert("Selecione complexidade, friccao e impacto.");
+    if (!name) return uiAlertInfo("Informe o nome da task padrao.");
+    if (!Number.isFinite(points) || points <= 0) return uiAlertInfo("Selecione complexidade, friccao e impacto.");
 
     defaultTaskDraft.push({ name, category, complexity, aversion, impact, points });
     $("#defaultTaskNameInput").value = "";
@@ -315,6 +316,7 @@ export function bindUIEvents(state) {
     $("#defaultTaskImpactInput").value = "";
     refreshDefaultTaskPoints();
     renderDefaultTasksDraft(defaultTaskDraft);
+    uiToast(FEEDBACK_TOASTS.defaultTemplateAdded(name));
   });
 
   $("#btnSaveDefaultTasks").addEventListener("click", async () => {
@@ -338,16 +340,16 @@ export function bindUIEvents(state) {
         .filter((item) => item.name && item.complexity && item.aversion && item.impact && Number.isFinite(item.points) && item.points > 0);
 
       if (!nextTemplate.length) {
-        alert("Mantenha pelo menos 1 task padrao.");
+        uiAlertInfo("Mantenha pelo menos 1 task padrao.");
         return;
       }
 
       defaultTaskDraft = await saveDefaultTasksTemplate(state.db, nextTemplate);
       renderDefaultTasksDraft(defaultTaskDraft);
       closeModal(UI.MODAL_DEFAULT_TASKS);
-      alert("Templates salvos.");
+      uiToast(FEEDBACK_TOASTS.defaultTemplatesSaved(nextTemplate.length));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -362,7 +364,7 @@ export function bindUIEvents(state) {
   // Criar dia
   $("#btnConfirmCreateDay").addEventListener("click", async () => {
     const date = $("#newDayInput").value;
-    if (!date) return alert("Selecione uma data.");
+    if (!date) return uiAlertInfo("Selecione uma data.");
 
     const today = dayKeyFromDate(new Date());
     const isFuture = date > today; // YYYY-MM-DD compara lexicograficamente OK
@@ -372,6 +374,7 @@ export function bindUIEvents(state) {
       setCurrentDay(state, date);
       closeModal(UI.MODAL_CREATE_DAY);
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.daySelected(formatDayDM(date)));
       return;
     }
 
@@ -393,12 +396,13 @@ export function bindUIEvents(state) {
     setCurrentDay(state, date);
     closeModal(UI.MODAL_CREATE_DAY);
     await renderApp(state);
+    uiToast(FEEDBACK_TOASTS.dayCreated(formatDayDM(date), tasks.length));
   });
 
   // Adicionar task
   $("#btnAddTask").addEventListener("click", async () => {
     if (isCurrentDayReadOnly(state)) {
-      alert("Dia anterior em modo somente leitura.");
+      uiAlertInfo("Dia anterior em modo somente leitura.");
       return;
     }
     try {
@@ -406,11 +410,11 @@ export function bindUIEvents(state) {
       const category = $(UI.TASK_CATEGORY_INPUT).value;
       const points = refreshTaskPoints();
       if (!Number.isFinite(points) || points <= 0) {
-        alert("Selecione complexidade, friccao e impacto para calcular os pontos.");
+        uiAlertInfo("Selecione complexidade, friccao e impacto para calcular os pontos.");
         return;
       }
 
-      await createTask(state, { name, points, category });
+      const createdTask = await createTask(state, { name, points, category });
 
       $("#taskName").value = "";
       $(UI.TASK_CATEGORY_INPUT).value = "trabalho";
@@ -420,12 +424,13 @@ export function bindUIEvents(state) {
       refreshTaskPoints();
 
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.taskCreated(createdTask.name, createdTask.points));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
-  // Clique nos chips do dia (últimos 7)
+  // Clique nos chips do dia (Ãºltimos 7)
   $(UI.DAY_LIST).addEventListener("click", async (e) => {
     const chip = e.target.closest(".day-chip");
     if (!chip) return;
@@ -442,7 +447,7 @@ export function bindUIEvents(state) {
     const cb = e.target.closest(".task-toggle");
     if (!cb) return;
     if (isCurrentDayReadOnly(state)) {
-      alert("Dia anterior em modo somente leitura.");
+      uiAlertInfo("Dia anterior em modo somente leitura.");
       cb.checked = !cb.checked;
       return;
     }
@@ -454,8 +459,13 @@ export function bindUIEvents(state) {
       const result = await toggleTaskCompletion(state, taskId);
       if (result?.completed) playRewardSound();
       await renderApp(state);
+      if (result?.completed) {
+        uiToast(FEEDBACK_TOASTS.taskCompleted(result.taskName, result.taskPoints));
+      } else {
+        uiToast(FEEDBACK_TOASTS.taskReopened(result.taskName));
+      }
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -473,8 +483,9 @@ export function bindUIEvents(state) {
       const nextCategory = categories[(currentIndex + 1) % categories.length];
       await updateTaskCategory(state, taskId, nextCategory);
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.taskCategoryChanged(getCategoryLabel(nextCategory)));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
     return;
   }
@@ -487,10 +498,13 @@ export function bindUIEvents(state) {
     if (!taskId) return;
 
     try {
-      await startTask(state, taskId);
+      const result = await startTask(state, taskId);
       await renderApp(state);
+      if (!result?.alreadyStarted) {
+        uiToast(FEEDBACK_TOASTS.taskStarted(result?.taskName));
+      }
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
     return;
   }
@@ -501,10 +515,11 @@ export function bindUIEvents(state) {
   if (!taskId) return;
 
   try {
-    await deleteTaskDomain(state, taskId);
+    const result = await deleteTaskDomain(state, taskId);
     await renderApp(state);
+    uiToast(FEEDBACK_TOASTS.taskDeleted(result?.taskName));
   } catch (err) {
-    alert(err?.message || String(err));
+    uiAlertError(err?.message || String(err));
   }
 });
 
@@ -578,7 +593,7 @@ export function bindUIEvents(state) {
       }
       await renderApp(state);
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     } finally {
       state.ui.dragTaskId = null;
       state.ui.dragSourceListId = null;
@@ -598,7 +613,7 @@ export function bindUIEvents(state) {
       const rewardTier = $("#rewardTierInput").value;
       const valueTier = $("#rewardValueInput").value;
 
-      await createReward(state, { name, rewardTier, valueTier });
+      const reward = await createReward(state, { name, rewardTier, valueTier });
 
       $("#rewardNameInput").value = "";
       $("#rewardTierInput").value = "intermediaria";
@@ -608,8 +623,9 @@ export function bindUIEvents(state) {
       closeModal(UI.MODAL_CREATE_REWARD);
       await renderApp(state);
       await renderRewardsModal(state);
+      uiToast(FEEDBACK_TOASTS.rewardCreated(reward.name, reward.cost));
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -631,9 +647,11 @@ export function bindUIEvents(state) {
       };
 
       if (habitId) {
-        await updateHabitTemplate(state, habitId, payload);
+        const updated = await updateHabitTemplate(state, habitId, payload);
+        uiToast(FEEDBACK_TOASTS.habitUpdated(updated.name));
       } else {
-        await createHabitTemplate(state, payload);
+        const created = await createHabitTemplate(state, payload);
+        uiToast(FEEDBACK_TOASTS.habitCreated(created.name));
       }
 
       resetHabitForm();
@@ -641,7 +659,7 @@ export function bindUIEvents(state) {
       await renderApp(state);
       await renderHabitsModal(state);
     } catch (err) {
-      alert(err?.message || String(err));
+      uiAlertError(err?.message || String(err));
     }
   });
 
@@ -656,16 +674,18 @@ export function bindUIEvents(state) {
 
       try {
         if (isCurrentDayReadOnly(state)) {
-          alert("Dia anterior em modo somente leitura.");
+          uiAlertInfo("Dia anterior em modo somente leitura.");
           return;
         }
         const source = state.ui.rewardConsumeSource === "weekly" ? "weekly" : "day";
-        await redeemReward(state, rewardId, { source });
+        const result = await redeemReward(state, rewardId, { source });
         launchConfetti();
         await renderApp(state);
         await renderRewardsModal(state);
+        const sourceLabel = result?.source === "weekly" ? "carteira semanal" : "pontos do dia";
+        uiToast(FEEDBACK_TOASTS.rewardRedeemed(result?.rewardName, result?.cost, sourceLabel));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -674,19 +694,20 @@ export function bindUIEvents(state) {
       const rewardId = deleteBtn.dataset.rewardId;
       if (!rewardId) return;
 
-      const ok = confirm("Excluir esta recompensa?");
+      const ok = await uiConfirmAction("Excluir esta recompensa?");
       if (!ok) return;
 
       try {
         if (isCurrentDayReadOnly(state)) {
-          alert("Dia anterior em modo somente leitura.");
+          uiAlertInfo("Dia anterior em modo somente leitura.");
           return;
         }
-        await deleteReward(state, rewardId);
+        const removed = await deleteReward(state, rewardId);
         await renderApp(state);
         await renderRewardsModal(state);
+        uiToast(FEEDBACK_TOASTS.rewardDeleted(removed?.rewardName));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
     }
   });
@@ -704,8 +725,9 @@ export function bindUIEvents(state) {
         await refreshCategorySelectOptions(state);
         await renderCategoriesCrudList(state);
         await renderApp(state);
+        uiToast(FEEDBACK_TOASTS.categoryRenamed(getCategoryLabel(key), next));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -714,15 +736,16 @@ export function bindUIEvents(state) {
     if (categoryDeleteBtn) {
       const key = categoryDeleteBtn.dataset.category;
       if (!key) return;
-      const ok = confirm(`Remover categoria "${getCategoryLabel(key)}"? Itens existentes serao movidos para Trabalho.`);
+      const ok = await uiConfirmAction(`Remover categoria "${getCategoryLabel(key)}"? Itens existentes serao movidos para Trabalho.`);
       if (!ok) return;
       try {
         await deleteCategory(state, key, { replacement: "trabalho" });
         await refreshCategorySelectOptions(state);
         await renderCategoriesCrudList(state);
         await renderApp(state);
+        uiToast(FEEDBACK_TOASTS.categoryDeleted(getCategoryLabel(key)));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -745,7 +768,7 @@ export function bindUIEvents(state) {
         };
         renderDefaultTasksDraft(defaultTaskDraft);
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -764,15 +787,16 @@ export function bindUIEvents(state) {
       const habitId = quickCard.dataset.habitId;
       if (!habitId) return;
       try {
-        await executeHabit(state, habitId);
+        const result = await executeHabit(state, habitId);
         playRewardSound();
         await renderApp(state);
         const habitsModal = document.getElementById(UI.MODAL_HABITS);
         if (habitsModal?.style.display === "flex") {
           await renderHabitsModal(state);
         }
+        uiToast(FEEDBACK_TOASTS.habitExecuted(result?.habitName, result?.pointsDelta));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -782,12 +806,13 @@ export function bindUIEvents(state) {
       const habitId = registerBtn.dataset.habitId;
       if (!habitId) return;
       try {
-        await executeHabit(state, habitId);
+        const result = await executeHabit(state, habitId);
         playRewardSound();
         await renderApp(state);
         await renderHabitsModal(state);
+        uiToast(FEEDBACK_TOASTS.habitExecuted(result?.habitName, result?.pointsDelta));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -817,7 +842,7 @@ export function bindUIEvents(state) {
         refreshHabitPoints();
         openModal(UI.MODAL_CREATE_HABIT);
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -826,14 +851,15 @@ export function bindUIEvents(state) {
     if (deleteBtn) {
       const habitId = deleteBtn.dataset.habitId;
       if (!habitId) return;
-      const ok = confirm("Excluir habito permanentemente? Isso nao apaga registros ja feitos no dia.");
+      const ok = await uiConfirmAction("Excluir habito permanentemente? Isso nao apaga registros ja feitos no dia.");
       if (!ok) return;
       try {
-        await deleteHabitTemplate(state, habitId);
+        const removed = await deleteHabitTemplate(state, habitId);
         await renderApp(state);
         await renderHabitsModal(state);
+        uiToast(FEEDBACK_TOASTS.habitDeleted(removed?.habitName));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
       return;
     }
@@ -843,16 +869,17 @@ export function bindUIEvents(state) {
       const executionId = undoExecBtn.dataset.execId;
       if (!executionId) return;
       try {
-        await undoHabitExecution(state, executionId);
+        const result = await undoHabitExecution(state, executionId);
         await renderApp(state);
         await renderHabitsModal(state);
+        uiToast(FEEDBACK_TOASTS.habitUndo(result?.pointsDelta));
       } catch (err) {
-        alert(err?.message || String(err));
+        uiAlertError(err?.message || String(err));
       }
     }
   });
 
-  // ✅ Delegação: clique em dia no modal "Ver Todos"
+  // âœ… DelegaÃ§Ã£o: clique em dia no modal "Ver Todos"
   document.getElementById("allDaysList").addEventListener("click", async (e) => {
     const deleteBtn = e.target.closest("[data-action='day:delete']");
     const dayBtn = e.target.closest("[data-action='day:select']");
@@ -863,21 +890,21 @@ export function bindUIEvents(state) {
       const dayKey = deleteBtn.dataset.day;
       if (!dayKey) return;
 
-      // Só futuro pode excluir
+      // SÃ³ futuro pode excluir
       if (!(dayKey > today)) {
-        alert("Só é permitido excluir dias futuros (planejamento).");
+        uiAlertInfo("Só é permitido excluir dias futuros (planejamento).");
         return;
       }
 
-      const ok = confirm(`Excluir o dia ${formatDayDM(dayKey)}? Isso removera tasks desse dia.`);
+      const ok = await uiConfirmAction(`Excluir o dia ${formatDayDM(dayKey)}? Isso removera tasks desse dia.`);
       if (!ok) return;
 
       // Cascade delete
       await deleteTasksByDay(state.db, dayKey);
-      await deleteEventsByDay(state.db, dayKey); // deve estar vazio (não loga futuro), mas fica robusto
+      await deleteEventsByDay(state.db, dayKey); // deve estar vazio (nÃ£o loga futuro), mas fica robusto
       await deleteDay(state.db, dayKey);
 
-      // Se estava no dia excluído, volta pro último dia existente (ou mantém o atual)
+      // Se estava no dia excluÃ­do, volta pro Ãºltimo dia existente (ou mantÃ©m o atual)
       if (state.currentDay === dayKey) {
         const days = await listDays(state.db);
         const fallback = days[days.length - 1] || today;
@@ -886,6 +913,7 @@ export function bindUIEvents(state) {
 
       await openAllDaysModal(state); // re-render do modal
       await renderApp(state);
+      uiToast(FEEDBACK_TOASTS.dayDeleted(formatDayDM(dayKey)));
       return;
     }
 
@@ -898,6 +926,34 @@ export function bindUIEvents(state) {
     }
   });
 
+}
+
+function uiAlertInfo(message, title = "Informacao") {
+  return showSystemAlert({ tone: "info", title, message });
+}
+
+function uiAlertError(message, title = "Erro") {
+  return showSystemAlert({ tone: "danger", title, message });
+}
+
+function uiToast(toastConfig, options = {}) {
+  if (!toastConfig) return;
+  return showActionToast({
+    tone: toastConfig.tone || "info",
+    title: toastConfig.title || "Informacao",
+    message: toastConfig.message || "",
+    ...options,
+  });
+}
+
+function uiConfirmAction(message, options = {}) {
+  return showSystemConfirm({
+    tone: options.tone || "warning",
+    title: options.title || "Confirmar acao",
+    message,
+    confirmLabel: options.confirmLabel || "Confirmar",
+    cancelLabel: options.cancelLabel || "Cancelar",
+  });
 }
 
 function bindTaskPointsEngine() {
@@ -1220,7 +1276,7 @@ function bindReadOnlyDayGuards(state) {
     if (!blocked) return;
     e.preventDefault();
     e.stopPropagation();
-    alert("Dia anterior em modo somente leitura.");
+    uiAlertInfo("Dia anterior em modo somente leitura.");
   }, true);
 }
 
@@ -1300,7 +1356,7 @@ async function openAllDaysModal(state) {
 
       ${
         isFuture
-          ? `<button type="button" class="btn-danger" data-action="day:delete" data-day="${d}" title="Excluir dia futuro">🗑️</button>`
+          ? `<button type="button" class="btn-danger" data-action="day:delete" data-day="${d}" title="Excluir dia futuro">ðŸ—‘ï¸</button>`
           : `<div style="width:42px;"></div>`
       }
     `;
@@ -1310,3 +1366,4 @@ async function openAllDaysModal(state) {
 
   openModal(UI.MODAL_ALL_DAYS);
 }
+

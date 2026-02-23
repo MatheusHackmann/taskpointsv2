@@ -214,6 +214,10 @@ export async function deleteHabitTemplate(state, habitId) {
   const existing = await getHabitTemplate(state.db, habitId);
   if (!existing) return;
   await repoDeleteHabitTemplate(state.db, habitId);
+  return {
+    habitId: existing.id,
+    habitName: existing.name,
+  };
 }
 
 function pickTemplateSnapshot(t) {
@@ -284,7 +288,13 @@ export async function executeHabit(state, habitId) {
     pointsAfter: after,
   });
 
-  return { execution, pointsAfter: after };
+  return {
+    execution,
+    pointsAfter: after,
+    habitId: template.id,
+    habitName: template.name,
+    pointsDelta: points,
+  };
 }
 
 export async function undoHabitExecution(state, executionId) {
@@ -318,7 +328,13 @@ export async function undoHabitExecution(state, executionId) {
     pointsAfter: after,
   });
 
-  return { pointsAfter: after };
+  return {
+    pointsAfter: after,
+    executionId,
+    habitId: execution.habitId,
+    pointsDelta: delta,
+    value: execution.value,
+  };
 }
 
 export async function editHabitExecution(state, executionId, patch) {

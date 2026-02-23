@@ -18,7 +18,7 @@ import { logPointsRecompute } from "./domain/logs.js";
 import { bindUIEvents } from "./ui/events.js";
 import { renderApp } from "./ui/render.js";
 import { startHabitReminderLoop } from "./ui/habitReminders.js";
-import { mountFeedbackShowcase } from "./ui/feedback.js";
+import { showSystemAlert } from "./ui/feedback.js";
 
 async function main() {
   try {
@@ -55,7 +55,6 @@ async function main() {
 
     // 6) Render inicial
     await renderApp(appState);
-    mountFeedbackShowcase({ autoOpen: true });
 
     // 7) Lembretes de habitos com meta diaria (visual + sonoro)
     startHabitReminderLoop(appState);
@@ -66,10 +65,14 @@ async function main() {
     });
   } catch (err) {
     console.error("[TaskPoints] Falha ao iniciar:", err);
-    alert(
+    await showSystemAlert({
+      tone: "danger",
+      title: "Falha ao iniciar",
+      confirmLabel: "Fechar",
+      message:
       "Falha ao iniciar o TaskPoints. Veja o console (F12) para detalhes.\n\n" +
       (err?.message || String(err))
-    );
+    });
   }
 }
 

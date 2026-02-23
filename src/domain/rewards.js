@@ -114,6 +114,12 @@ export async function deleteReward(state, rewardId) {
     nameSnapshot: reward.name,
     costSnapshot: reward.cost,
   });
+
+  return {
+    rewardId: reward.id,
+    rewardName: reward.name,
+    rewardCost: Number(reward.cost) || Number(reward.baseCost) || 0,
+  };
 }
 
 /**
@@ -179,7 +185,16 @@ export async function redeemReward(state, rewardId, { source = "day" } = {}) {
     walletPointsAfter: walletAfter,
   });
 
-  return { pointsAfter, dayPointsAfter: dayAfter, walletPointsAfter: walletAfter };
+  return {
+    pointsAfter,
+    dayPointsAfter: dayAfter,
+    walletPointsAfter: walletAfter,
+    rewardId: reward.id,
+    rewardName: reward.name,
+    cost,
+    baseCost,
+    source: consumeSource,
+  };
 }
 
 /**

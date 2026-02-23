@@ -102,7 +102,12 @@ export async function startTask(state, taskId, { auto = false } = {}) {
   }
 
   if (task.startedAt || task.completed) {
-    return { startedAt: task.startedAt || null, alreadyStarted: true };
+    return {
+      startedAt: task.startedAt || null,
+      alreadyStarted: true,
+      taskName: task.name,
+      taskPoints: Number(task.points) || 0,
+    };
   }
 
   const startedAt = isoNow();
@@ -111,7 +116,11 @@ export async function startTask(state, taskId, { auto = false } = {}) {
   await upsertTask(state.db, updatedTask);
   await logTaskStart(state, { taskId: task.id, day: dayKey, startedAt, auto });
 
-  return { startedAt };
+  return {
+    startedAt,
+    taskName: task.name,
+    taskPoints: Number(task.points) || 0,
+  };
 }
 
 /**
@@ -182,7 +191,13 @@ export async function toggleTaskCompletion(state, taskId) {
     });
   }
 
-  return { pointsAfter: after, completed: nextCompleted };
+  return {
+    pointsAfter: after,
+    completed: nextCompleted,
+    taskName: task.name,
+    taskPoints: pts,
+    pointsDelta: delta,
+  };
 }
 
 /**
@@ -232,7 +247,13 @@ export async function deleteTask(state, taskId) {
     category: task.category,
   });
 
-  return { pointsAfter: after };
+  return {
+    pointsAfter: after,
+    taskName: task.name,
+    taskPoints: pts,
+    wasCompleted,
+    pointsDelta: delta,
+  };
 }
 
 /**
