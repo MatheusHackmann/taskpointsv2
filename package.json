@@ -1,0 +1,16 @@
+{
+  "name": "taskpoints-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Extensão TaskPoints PRO para relatórios e interface avançada",
+  "scripts": {
+    "dev": "npx live-server . --port=5500",
+    "lint": "npm --prefix .aios-core run lint",
+    "typecheck": "npm --prefix .aios-core run typecheck",
+    "test": "npm --prefix .aios-core run test"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

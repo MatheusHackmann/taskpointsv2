@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskPoints PRO | Relatorios comportamentais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true"></div>
+  <main class="report-page">
+    <div class="report-shell">
+      <header class="report-header">
+        <div>
+          <h1 class="report-title">Inteligencia comportamental</h1>
+          <p><span class="report-period" id="reportPeriod">Carregando...</span></p>
+          <p class="report-period">Relatorios sempre montados sobre janelas de 7 dias, prontos para insights e decisoes.</p>
+        </div>
+        <div class="report-actions">
+          <label>
+            Periodo
+            <select id="periodSelect">
+              <option value="today">Hoje</option>
+              <option value="last7" selected>Ultimos 7 dias</option>
+              <option value="last30">Ultimos 30 dias</option>
+              <option value="custom">Intervalo personalizado</option>
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select id="reportCategory">
+              <option value="all" selected>Todas</option>
+              <option value="trabalho">Trabalho</option>
+              <option value="saude">Saude</option>
+              <option value="estudo">Estudo</option>
+            </select>
+          </label>
+          <div id="customRange" class="custom-range">
+            <div>
+              <span>De</span>
+              <input type="date" id="periodStart" />
+            </div>
+            <div>
+              <span>Ate</span>
+              <input type="date" id="periodEnd" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="report-section" id="overviewSection">
+        <h3>Visao geral do periodo</h3>
+        <ul id="overviewMetrics" class="report-list"></ul>
+      </section>
+
+      <section class="report-section">
+        <h3>Analise de consistencia</h3>
+        <ul id="consistencyList" class="report-list"></ul>
+      </section>
+
+      <section class="report-section">
+        <h3>Meta semanal</h3>
+        <ul id="weeklyGoalStats" class="report-list"></ul>
+      </section>
+
+      <section class="report-section">
+        <h3>Analise de tempo e produtividade</h3>
+        <div id="timeInsights" class="report-list"></div>
+        <table class="report-table" id="durationTable">
+          <thead>
+            <tr><th>Faixa</th><th>Qtd.</th><th>%</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="report-list" id="completionHours"></div>
+      </section>
+
+      <section class="report-section">
+        <h3>Ranking inteligente</h3>
+        <div class="report-grid">
+          <div class="report-section">
+            <h4>Tarefas por pontos</h4>
+            <ul id="rankingPoints" class="report-list"></ul>
+          </div>
+          <div class="report-section">
+            <h4>Mais concluidas</h4>
+            <ul id="rankingFrequency" class="report-list"></ul>
+          </div>
+          <div class="report-section">
+            <h4>Maior tempo medio</h4>
+            <ul id="rankingDuration" class="report-list"></ul>
+          </div>
+          <div class="report-section">
+            <h4>Mais abandonadas</h4>
+            <ul id="rankingAbandon" class="report-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="report-section">
+        <h3>Sistema de insights automaticos</h3>
+        <div id="autoInsights" class="report-insights"></div>
+      </section>
+
+      <section class="report-section">
+        <h3>Habitos no periodo</h3>
+        <ul id="habitStats" class="report-list"></ul>
+      </section>
+
+      <section class="report-section">
+        <h3>Resumo por categoria</h3>
+        <ul id="categoryStats" class="report-list"></ul>
+      </section>
+
+      <section class="report-section">
+        <h3>Recompensas e fluxo de pontos</h3>
+        <ul id="rewardStats" class="report-list"></ul>
+      </section>
+
+      <a class="back-link" href="./index.html"><- Voltar ao painel</a>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const storageKey = "taskpoints-theme";
+      const saved = localStorage.getItem(storageKey);
+      const preferred = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      root.setAttribute("data-theme", preferred);
+    })();
+  </script>
+  <script type="module" src="./src/reports.js"></script>
+</body>
+</html>

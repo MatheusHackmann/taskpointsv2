@@ -1,0 +1,41 @@
+﻿schema: 1
+story: 'ST-004'
+story_title: 'Objetivos por Categoria'
+gate: PASS
+status_reason: 'Implementacao permanece aderente ao escopo aprovado; testes automatizados/manuais validados e README atualizado para refletir a feature.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-21T20:18:00-03:00'
+quality_score: 96
+expires: '2026-03-07T20:18:00-03:00'
+top_issues: []
+waiver:
+  active: false
+evidence:
+  coderabbit:
+    executed: false
+    notes: 'Nao executado: WSL ausente no ambiente (requisito da integracao atual).'
+  tests_reviewed:
+    count: 241
+  risks_identified:
+    count: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Nao foram identificados vetores diretos de seguranca na alteracao revisada.'
+  performance:
+    status: PASS
+    notes: 'Sem regressao aparente relevante por analise estatica para o volume esperado.'
+  reliability:
+    status: PASS
+    notes: 'Fallback legado, persistencia e fluxos manuais foram validados.'
+  maintainability:
+    status: PASS
+    notes: 'README agora documenta o comportamento de categorias e cobertura automatizada permanece valida.'
+recommendations:
+  immediate: []
+  future:
+    - action: 'Atualizar checkbox de documentacao na checklist da story para rastreabilidade.'
+      refs: ['docs/stories/ST-004-objetivos-por-categoria.md:117', 'README.md']

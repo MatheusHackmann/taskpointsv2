@@ -1,0 +1,449 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskPoints PRO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+
+<body>
+  <div class="bg-layer" aria-hidden="true"></div>
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-icon">TP</div>
+        <div class="brand-text">
+          <h1>TaskPoints PRO</h1>
+          <p>Controle premium de hábitos e performance diária.</p>
+          <p id="dayTitle" class="day-title" aria-live="polite">Carregando...</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnOpenLogs" class="icon-btn" type="button" title="Ver logs do dia" aria-label="Abrir logs do dia">
+          &#128221;
+        </button>
+        <button id="btnOpenReports" class="icon-btn" type="button" title="Abrir relatórios avançados" aria-label="Relatórios avançados" onclick="window.location.href='reports.html'">
+          &#128202;
+        </button>
+      </div>
+    </header>
+
+    <section class="control-bar">
+      <div class="action-group">
+        <button id="btnCreateDay" type="button">Criar dia</button>
+        <button id="btnAllDays" type="button">Ver todos</button>
+        <div class="data-menu-wrap">
+          <button id="btnDataMenu" type="button" aria-haspopup="menu" aria-expanded="false">Dados</button>
+          <div id="dataMenuPanel" class="data-menu-panel" role="menu" hidden>
+            <button id="btnExportData" class="data-menu-item" type="button" role="menuitem">Exportar dados</button>
+            <button id="btnImportData" class="data-menu-item" type="button" role="menuitem">Importar dados</button>
+          </div>
+        </div>
+        <input id="importDataInput" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div class="day-summary card">
+        <div class="day-summary-primary">
+          <span class="frost-chip">Pontos do dia</span>
+          <div class="day-summary-primary-value">
+            <strong id="dayPoints">0</strong>
+            <span>total no dia atual</span>
+          </div>
+        </div>
+        <div class="day-summary-stats">
+          <div class="day-stat-card day-stat-card-neutral">
+            <span>Pontos Resgatados</span>
+            <b id="dayRedeemedPoints">0</b>
+          </div>
+          <div class="day-stat-card day-stat-card-success">
+            <span>Carteira semanal vitalicia</span>
+            <b id="weekPoints">0</b>
+          </div>
+          <div class="day-stat-card day-stat-card-warning day-stat-card-full">
+            <span>Pontos Penalizados Hoje</span>
+            <b id="dayPenalizedPoints">0</b>
+          </div>
+        </div>
+        <div class="day-summary-actions">
+          <button id="btnMaxPenalty" class="btn-danger max-penalty-btn" type="button" title="Aplicar penalidade maxima">
+            Penalidade Maxima
+          </button>
+          <button id="btnOpenRewards" class="icon-btn rewards-inline-btn" type="button" aria-label="Abrir recompensas" title="Recompensas">&#127873;</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="weeklyGoalCard" class="card weekly-goal-card">
+      <div class="weekly-goal-head">
+        <h3>Meta semanal</h3>
+        <button id="btnOpenWeeklyGoal" type="button">Configurar</button>
+      </div>
+      <div id="weeklyGoalText" class="weekly-goal-text">Sem meta semanal definida.</div>
+      <div class="progress-bar-bg weekly-goal-progress">
+        <div id="weeklyGoalBar" class="progress-bar-fill"></div>
+      </div>
+      <div id="weeklyGoalStatus" class="weekly-goal-status">Defina uma meta para acompanhar sua semana.</div>
+      <div id="weeklyGoalLevels" class="weekly-goal-levels"></div>
+    </section>
+
+    <div id="dayList" class="day-chips"></div>
+
+    <section class="habits-panel card">
+      <div class="section-head">
+        <div>
+          <h2>Hábitos</h2>
+        </div>
+        <div class="section-actions">
+          <button id="btnOpenHabits" type="button">Gerenciar hábitos</button>
+        </div>
+      </div>
+      <div id="habitsSection" class="habits-grid"></div>
+    </section>
+
+    <section class="tasks-panel card">
+      <div class="section-head">
+        <div>
+          <h2>Tarefas</h2>
+        </div>
+        <div class="section-actions tasks-section-actions">
+          <button id="btnOpenCategories" type="button">Categorias</button>
+          <button id="btnOpenDefaultTasks" class="task-template-icon-btn" type="button" aria-label="Editar templates de novo dia" title="Editar templates de novo dia">Templates</button>
+        </div>
+      </div>
+      <div class="task-composer">
+        <div class="task-composer-main">
+          <input type="text" id="taskName" placeholder="Nome da task" autocomplete="off" />
+          <div id="taskPointsBadge" class="task-points-badge" aria-live="polite">+0</div>
+          <button id="btnAddTask" type="button" aria-label="Adicionar nova task" title="Adicionar nova task">Adicionar</button>
+        </div>
+        <details class="task-composer-advanced">
+          <summary>Opcoes da task</summary>
+          <div class="task-composer-grid">
+            <select id="taskCategory" aria-label="Categoria da task">
+              <option value="trabalho" selected>Trabalho</option>
+              <option value="saude">Saude</option>
+              <option value="estudo">Estudo</option>
+            </select>
+            <select id="taskComplexity" aria-label="Complexidade da task">
+              <option value="" selected>Complexidade</option>
+              <option value="baixa">Complexidade baixa</option>
+              <option value="media">Complexidade media</option>
+              <option value="alta">Complexidade alta</option>
+            </select>
+            <select id="taskAversion" aria-label="Friccao da task">
+              <option value="" selected>Friccao</option>
+              <option value="baixa">Friccao baixa</option>
+              <option value="media">Friccao media</option>
+              <option value="alta">Friccao alta</option>
+            </select>
+            <select id="taskImpact" aria-label="Impacto da task">
+              <option value="" selected>Impacto</option>
+              <option value="baixo">Impacto baixo</option>
+              <option value="medio">Impacto medio</option>
+              <option value="alto">Impacto alto</option>
+            </select>
+          </div>
+        </details>
+      </div>
+      <div class="tasks-wrapper">
+        <div class="tasks-column">
+          <div class="tasks-column-title">
+            <h3>Pendentes</h3>
+            <button
+              id="btnSyncPendingDefaults"
+              class="tasks-refresh-btn"
+              type="button"
+              aria-label="Recarregar tasks faltantes do template padrao"
+              title="Adicionar tasks faltantes do template padrao"
+            >&#10227;</button>
+          </div>
+          <div id="pendingTasks"></div>
+        </div>
+        <div class="tasks-column">
+          <h3>Concluídas</h3>
+          <div id="completedTasks"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="progress-shell">
+      <div class="progress-info">
+        <span id="progressText">0% concluído</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressBar" class="progress-bar-fill"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="createDayModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="createDayTitle">
+    <div class="modal-content">
+      <h3 id="createDayTitle">Criar novo dia</h3>
+      <input type="date" id="newDayInput" />
+      <div class="flex" style="margin-top:16px;">
+        <button id="btnConfirmCreateDay" type="button">Criar</button>
+        <button class="btnCloseModal" data-modal="createDayModal" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="defaultTasksModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="defaultTasksTitle">
+    <div class="modal-content">
+      <div class="modal-title-row">
+        <h3 id="defaultTasksTitle">Templates de tasks para novo dia</h3>
+        <button class="icon-btn btnCloseModal" data-modal="defaultTasksModal" type="button" title="Fechar">&times;</button>
+      </div>
+      <p class="reward-meta">As tasks abaixo serao criadas automaticamente sempre que voce abrir um novo dia.</p>
+      <div class="default-task-form">
+        <input type="text" id="defaultTaskNameInput" placeholder="Nome da task padrao" autocomplete="off" />
+        <select id="defaultTaskCategoryInput" aria-label="Categoria da task padrao">
+          <option value="trabalho" selected>Trabalho</option>
+          <option value="saude">Saude</option>
+          <option value="estudo">Estudo</option>
+        </select>
+        <select id="defaultTaskComplexityInput" aria-label="Complexidade da task padrao">
+          <option value="" selected>Complexidade</option>
+          <option value="baixa">Complexidade baixa</option>
+          <option value="media">Complexidade media</option>
+          <option value="alta">Complexidade alta</option>
+        </select>
+        <select id="defaultTaskAversionInput" aria-label="Friccao da task padrao">
+          <option value="" selected>Friccao</option>
+          <option value="baixa">Friccao baixa</option>
+          <option value="media">Friccao media</option>
+          <option value="alta">Friccao alta</option>
+        </select>
+        <select id="defaultTaskImpactInput" aria-label="Impacto da task padrao">
+          <option value="" selected>Impacto</option>
+          <option value="baixo">Impacto baixo</option>
+          <option value="medio">Impacto medio</option>
+          <option value="alto">Impacto alto</option>
+        </select>
+        <div id="defaultTaskPointsBadge" class="task-points-badge" aria-live="polite">+0</div>
+        <button id="btnAddDefaultTask" type="button">Adicionar</button>
+      </div>
+      <div class="form-hint">
+        <div class="form-hint-grid">
+          <div>
+            <div class="form-hint-title">Campos da task template</div>
+            <div class="form-hint-item"><b>Nome:</b> descreva a acao com clareza.</div>
+            <div class="form-hint-item"><b>Complexidade:</b> dificuldade tecnica/mental.</div>
+            <div class="form-hint-item"><b>Friccao:</b> resistencia para iniciar/executar.</div>
+            <div class="form-hint-item"><b>Impacto:</b> valor pratico no seu dia.</div>
+          </div>
+          <div>
+            <div class="form-hint-title">Como os pontos funcionam</div>
+            <div class="form-hint-item"><b>Auto:</b> pontos sao calculados pela combinacao dos niveis.</div>
+            <div class="form-hint-item"><b>Badge:</b> mostra o valor final antes de adicionar.</div>
+            <div class="form-hint-item"><b>Sem edicao manual:</b> mantem consistencia do sistema.</div>
+          </div>
+        </div>
+      </div>
+      <div id="defaultTasksList"></div>
+      <div class="flex" style="margin-top:14px;">
+        <button id="btnSaveDefaultTasks" type="button">Salvar templates</button>
+        <button class="btnCloseModal" data-modal="defaultTasksModal" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="categoriesModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="categoriesTitle">
+    <div class="modal-content">
+      <div class="modal-title-row">
+        <h3 id="categoriesTitle">Categorias</h3>
+        <button class="icon-btn btnCloseModal" data-modal="categoriesModal" type="button" title="Fechar">&times;</button>
+      </div>
+      <p class="reward-meta">Gerencie as categorias usadas em tasks e habitos.</p>
+      <div class="flex categories-toolbar">
+        <input type="text" id="categoryNameInput" placeholder="Nova categoria (ex: lazer)" autocomplete="off" />
+        <button id="btnAddCategory" type="button">Adicionar</button>
+      </div>
+      <div id="categoriesList" class="categories-list"></div>
+      <div class="flex" style="margin-top:12px;">
+        <button class="btnCloseModal" data-modal="categoriesModal" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="allDaysModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="allDaysTitle">
+    <div class="modal-content">
+      <h3 id="allDaysTitle">Todos os dias</h3>
+      <div id="allDaysList"></div>
+      <div class="flex" style="margin-top:12px;">
+        <button class="btnCloseModal" data-modal="allDaysModal" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="habitsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="habitsTitle">
+    <div class="modal-content">
+      <div class="modal-title-row">
+        <h3 id="habitsTitle">Hábitos</h3>
+        <button class="icon-btn btnCloseModal" data-modal="habitsModal" type="button" title="Fechar">&times;</button>
+      </div>
+      <div class="modal-top-actions">
+        <button id="btnOpenCreateHabit" type="button">Novo hábito</button>
+        <button class="btnCloseModal" data-modal="habitsModal" type="button">Fechar</button>
+      </div>
+      <div class="habits-modal-layout">
+        <div>
+          <h4>Catálogo</h4>
+          <div id="habitsList"></div>
+        </div>
+        <div>
+          <h4>Registros do dia</h4>
+          <div id="habitExecList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="createHabitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="habitFormTitle">
+    <div class="modal-content">
+      <h3 id="habitFormTitle">Criar hábito</h3>
+      <input type="hidden" id="habitEditId" />
+      <input type="text" id="habitNameInput" placeholder="Nome do hábito" autocomplete="off" />
+      <div class="flex" style="margin-top:12px;">
+        <input type="text" id="habitUnitInput" placeholder="Unidade (ml, min...)" autocomplete="off" />
+        <input type="text" id="habitIconInput" placeholder="Ícone (opcional)" autocomplete="off" />
+      </div>
+      <div class="flex" style="margin-top:12px;">
+        <input type="number" id="habitIncrementInput" placeholder="Incremento por clique" min="1" />
+        <input type="number" id="habitPointsInput" placeholder="Pontos por clique (auto)" min="1" readonly />
+      </div>
+      <div class="flex" style="margin-top:12px;">
+        <input type="number" id="habitDailyTargetInput" placeholder="Meta diaria (total por dia)" min="1" />
+        <select id="habitCategoryInput" aria-label="Categoria do habito">
+          <option value="trabalho" selected>Trabalho</option>
+          <option value="saude">Saude</option>
+          <option value="estudo">Estudo</option>
+        </select>
+      </div>
+      <div class="flex" style="margin-top:12px;">
+        <select id="habitTierInput" aria-label="Nivel do habito">
+          <option value="micro">Habito micro</option>
+          <option value="moderado" selected>Habito moderado</option>
+          <option value="profundo">Habito profundo</option>
+        </select>
+        <select id="habitEffortInput" aria-label="Esforco do habito">
+          <option value="baixa">Esforco baixo</option>
+          <option value="media" selected>Esforco medio</option>
+          <option value="alta">Esforco alto</option>
+        </select>
+      </div>
+      <div class="form-hint">
+        <div class="form-hint-grid">
+          <div>
+            <div class="form-hint-title">Niveis de habito</div>
+            <div class="form-hint-item"><b>Micro:</b> passo minimo, facil de manter.</div>
+            <div class="form-hint-item"><b>Moderado:</b> rotina consistente, ritmo equilibrado.</div>
+            <div class="form-hint-item"><b>Profundo:</b> pratica intensa, alto impacto.</div>
+          </div>
+          <div>
+            <div class="form-hint-title">Niveis de esforco</div>
+            <div class="form-hint-item"><b>Baixo:</b> pouca energia e tempo.</div>
+            <div class="form-hint-item"><b>Medio:</b> foco regular ao longo do dia.</div>
+            <div class="form-hint-item"><b>Alto:</b> dedicacao elevada e constancia.</div>
+          </div>
+        </div>
+      </div>
+      <div class="flex" style="margin-top:16px;">
+        <button id="btnConfirmHabit" type="button">Salvar</button>
+        <button class="btnCloseModal" data-modal="createHabitModal" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="logsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="logsTitle">
+    <div class="modal-content">
+      <div class="modal-title-row">
+        <h3 id="logsTitle">Logs do dia</h3>
+        <button class="icon-btn btnCloseModal" data-modal="logsModal" type="button" title="Fechar">&times;</button>
+      </div>
+      <div id="logList"></div>
+      <div class="flex" style="margin-top:12px;">
+        <button class="btnCloseModal" data-modal="logsModal" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rewardsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="rewardsTitle">
+    <div class="modal-content">
+      <div class="modal-title-row">
+        <h3 id="rewardsTitle">&#127873; Recompensas</h3>
+        <button class="icon-btn btnCloseModal" data-modal="rewardsModal" type="button" title="Fechar">&times;</button>
+      </div>
+      <div class="rewards-points">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <span>Consumir de:</span>
+          <select id="rewardConsumeSourceInput" aria-label="Origem de consumo dos pontos">
+            <option value="day" selected>Pontos do dia</option>
+            <option value="weekly">Carteira semanal vitalicia</option>
+          </select>
+        </div>
+        <div style="margin-top:8px;">Disponivel na origem selecionada: <b><span id="modalDayPoints">0</span></b></div>
+        <div class="reward-meta" style="margin-top:4px;">Saldo diario: <b><span id="modalDayPointsOnly">0</span></b> | Carteira semanal: <b><span id="modalWeeklyPoints">0</span></b></div>
+      </div>
+      <h4 style="margin-bottom:8px;">Disponíveis</h4>
+      <div id="rewardsCatalogList"></div>
+      <h4 style="margin:18px 0 8px;">Resgatadas (hoje)</h4>
+      <div id="rewardsRedeemedList"></div>
+      <div class="flex" style="margin-top:14px;">
+        <button id="btnOpenCreateReward" type="button">+ Criar recompensa</button>
+        <button class="btnCloseModal" data-modal="rewardsModal" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="createRewardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="createRewardTitle">
+    <div class="modal-content">
+      <h3 id="createRewardTitle">Nova recompensa</h3>
+      <input type="text" id="rewardNameInput" placeholder="Nome da recompensa" autocomplete="off" />
+      <div class="flex" style="margin-top:12px;">
+        <select id="rewardTierInput" aria-label="Tipo de recompensa">
+          <option value="imediata">Imediata (rapida)</option>
+          <option value="intermediaria" selected>Intermediaria</option>
+          <option value="premium">Premium</option>
+        </select>
+        <select id="rewardValueInput" aria-label="Valor subjetivo">
+          <option value="baixo">Valor baixo</option>
+          <option value="medio" selected>Valor medio</option>
+          <option value="alto">Valor alto</option>
+        </select>
+      </div>
+      <p id="rewardCostPreview" class="reward-meta" style="margin-top:10px;">Custo base sugerido: --</p>
+      <div class="flex" style="margin-top:16px;">
+        <button id="btnConfirmCreateReward" type="button">Salvar</button>
+        <button class="btnCloseModal" data-modal="createRewardModal" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="weeklyGoalModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="weeklyGoalTitle">
+    <div class="modal-content">
+      <h3 id="weeklyGoalTitle">Meta semanal de pontos</h3>
+      <input type="text" id="weeklyGoalNameInput" placeholder="Nome da meta (ex: Fechar Sprint da semana)" autocomplete="off" />
+      <div class="flex" style="margin-top:8px;">
+        <input type="number" id="weeklyGoalInput" placeholder="Meta semanal (pontos)" min="1" />
+        <input type="number" id="weeklyGoalRewardInput" placeholder="Recompensa (pontos)" min="1" />
+      </div>
+      <p class="reward-meta">Prejuizo configurado: se nao concluir a meta semanal, 50% da recompensa sera descontada da carteira acumulada.</p>
+      <div class="flex" style="margin-top:8px;">
+        <input type="number" id="weeklyGoalPenaltyInput" value="50" readonly aria-label="Prejuizo percentual" />
+      </div>
+      <div id="weeklyGoalsCrudList" class="weekly-goal-crud-list"></div>
+      <div class="flex" style="margin-top:16px;">
+        <button id="btnSaveWeeklyGoal" type="button">Salvar meta</button>
+        <button class="btnCloseModal" data-modal="weeklyGoalModal" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+
+
