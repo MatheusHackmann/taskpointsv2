@@ -27,6 +27,7 @@ import {
   getTasksForCurrentDay,
   startTask,
 } from "../domain/tasks.js";
+import { pauseTaskTimer, resumeTaskTimer } from "../domain/taskTimers.js";
 
 import { createReward, deleteReward, redeemReward } from "../domain/rewards.js";
 import {
@@ -75,6 +76,7 @@ import {
   spendLifetimeWeeklyBonusBalance,
 } from "../domain/weeklyGoals.js";
 import { bulkUpsertTasks, deleteTasksByDay } from "../storage/repositories/tasksRepo.js";
+import { deleteTaskTimerSessionsByDay } from "../storage/repositories/taskTimerSessionsRepo.js";
 import { deleteEventsByDay } from "../storage/repositories/eventsRepo.js";
 
 import {
@@ -491,6 +493,7 @@ export function bindUIEvents(state) {
   }
 
   const startBtn = e.target.closest(".task-start");
+  const timerToggleBtn = e.target.closest(".task-timer-toggle");
   const del = e.target.closest(".task-delete");
 
   if (startBtn) {
@@ -502,6 +505,27 @@ export function bindUIEvents(state) {
       await renderApp(state);
       if (!result?.alreadyStarted) {
         uiToast(FEEDBACK_TOASTS.taskStarted(result?.taskName));
+      }
+    } catch (err) {
+      uiAlertError(err?.message || String(err));
+    }
+    return;
+  }
+
+  if (timerToggleBtn) {
+    const taskId = timerToggleBtn.dataset.taskId;
+    const action = timerToggleBtn.dataset.action;
+    if (!taskId || !action) return;
+
+    try {
+      if (action === "pause") {
+        await pauseTaskTimer(state, taskId, state.currentDay, { origin: "task_timer_button" });
+        await renderApp(state);
+        uiToast(FEEDBACK_TOASTS.taskTimerPaused());
+      } else if (action === "resume") {
+        await resumeTaskTimer(state, taskId, state.currentDay, { origin: "task_timer_button" });
+        await renderApp(state);
+        uiToast(FEEDBACK_TOASTS.taskTimerResumed());
       }
     } catch (err) {
       uiAlertError(err?.message || String(err));
@@ -901,7 +925,8 @@ export function bindUIEvents(state) {
 
       // Cascade delete
       await deleteTasksByDay(state.db, dayKey);
-      await deleteEventsByDay(state.db, dayKey); // deve estar vazio (nÃ£o loga futuro), mas fica robusto
+      await deleteTaskTimerSessionsByDay(state.db, dayKey);
+      await deleteEventsByDay(state.db, dayKey); // deve estar vazio (nao loga futuro), mas fica robusto
       await deleteDay(state.db, dayKey);
 
       // Se estava no dia excluÃ­do, volta pro Ãºltimo dia existente (ou mantÃ©m o atual)
@@ -1247,6 +1272,7 @@ function bindReadOnlyDayGuards(state) {
     "#btnSyncPendingDefaults",
     ".task-category-toggle",
     ".task-start",
+    ".task-timer-toggle",
     ".task-delete",
     ".reward-redeem",
     ".reward-delete",

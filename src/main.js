@@ -3,6 +3,7 @@
 
 import { initAppState } from "./app/state.js";
 import { DB_NAME, DB_VERSION, EVENT } from "./app/constants.js";
+import { getFeatureFlags } from "./app/featureFlags.js";
 
 import { openDB } from "./storage/db.js";
 import { runMigrations } from "./storage/migrations.js";
@@ -29,7 +30,7 @@ async function main() {
     await runMigrations(db);
 
     // 3) Estado em memória (currentDay etc.)
-    const appState = initAppState({ db });
+    const appState = initAppState({ db, features: getFeatureFlags() });
 
     // 4) Garante que existe pelo menos 1 dia (hoje) e recompensas seed
     await ensureBootstrapData(appState);

@@ -7,6 +7,7 @@ import { newId } from "./id.js";
 import { isoNow, dayKeyFromDate } from "./dates.js";
 import { getPriority } from "./defaults.js";
 import { normalizeCategory, ensureCategoryExists } from "./categories.js";
+import { startTaskTimer, stopTaskTimer } from "./taskTimers.js";
 
 import {
   listTasksByDay,
@@ -115,6 +116,9 @@ export async function startTask(state, taskId, { auto = false } = {}) {
 
   await upsertTask(state.db, updatedTask);
   await logTaskStart(state, { taskId: task.id, day: dayKey, startedAt, auto });
+  await startTaskTimer(state, task.id, dayKey, {
+    origin: auto ? "task_auto_start" : "task_start",
+  });
 
   return {
     startedAt,
@@ -182,6 +186,10 @@ export async function toggleTaskCompletion(state, taskId) {
       completedAt,
       category: task.category,
     });
+    await stopTaskTimer(state, task.id, dayKey, "completed", {
+      origin: "task_complete",
+      category: task.category,
+    });
   } else {
     await logTaskUncomplete(state, {
       taskId: task.id,
@@ -224,6 +232,11 @@ export async function deleteTask(state, taskId) {
   const delta = wasCompleted ? -pts : 0;
   const before = Number(day.totalPoints) || 0;
   const after = before + delta;
+
+  await stopTaskTimer(state, task.id, dayKey, "deleted", {
+    origin: "task_delete",
+    category: task.category,
+  });
 
   await repoDeleteTask(state.db, taskId);
 

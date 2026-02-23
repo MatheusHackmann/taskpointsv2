@@ -1,0 +1,28 @@
+schema: 1
+story: 'ST-011'
+story_title: 'Timer com Pausa por Task'
+gate: CONCERNS
+status_reason: 'A ST-011 esta funcionalmente validada pelos testes especificos, porem o quality gate global de testes do repositorio falhou em suites da .aios-core e reduz a confianca geral para merge.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-23T19:31:05-03:00'
+top_issues:
+  - id: 'TEST-011'
+    severity: medium
+    finding: 'Execucao de npm test falhou (10 suites, 65 testes) em componentes da .aios-core fora do escopo direto da ST.'
+    suggested_action: 'Estabilizar a baseline de testes da .aios-core e reexecutar npm test antes do merge.'
+waiver:
+  active: false
+evidence:
+  tests:
+    lint:
+      status: PASS_WITH_WARNINGS
+      notes: 'npm run lint concluido com 41 warnings e 0 errors.'
+    typecheck:
+      status: PASS
+      notes: 'npm run typecheck concluido sem erros.'
+    test_app:
+      status: PASS
+      notes: 'ST-011 app checks: PASS; ST-011 behavior tests: PASS.'
+    test_full:
+      status: FAIL
+      notes: 'npm test falhou com 10 suites e 65 testes; ha mensagens de open handles.'

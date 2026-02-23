@@ -7,7 +7,8 @@
     "dev": "npx live-server . --port=5500",
     "lint": "npm --prefix .aios-core run lint",
     "typecheck": "npm --prefix .aios-core run typecheck",
-    "test": "npm --prefix .aios-core run test"
+    "test": "npm --prefix .aios-core run test -- --runInBand",
+    "test:app": "node scripts/verify-st011.cjs && node scripts/test-st011-behavior.cjs"
   },
   "engines": {
     "node": ">=18.0.0",

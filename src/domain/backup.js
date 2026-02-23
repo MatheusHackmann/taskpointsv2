@@ -10,6 +10,7 @@ import {
   STORE_EVENTS,
   STORE_HABIT_TEMPLATES,
   STORE_HABIT_EXECUTIONS,
+  STORE_TASK_TIMER_SESSIONS,
   META_KEY_LAST_EVENT_SEQ,
 } from "../app/constants.js";
 import { withTx, reqToPromise } from "../storage/db.js";
@@ -23,6 +24,7 @@ const BACKUP_STORES = [
   STORE_EVENTS,
   STORE_HABIT_TEMPLATES,
   STORE_HABIT_EXECUTIONS,
+  STORE_TASK_TIMER_SESSIONS,
 ];
 
 export async function exportAllData(state) {
@@ -114,6 +116,9 @@ export function serializeBackup(payload) {
 }
 
 async function readStore(db, storeName) {
+  if (!db?.objectStoreNames?.contains?.(storeName)) {
+    return [];
+  }
   return withTx(db, [storeName], "readonly", async (_tx, stores) => {
     return reqToPromise(stores[storeName].getAll());
   });

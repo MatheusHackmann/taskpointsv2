@@ -10,7 +10,34 @@ import {
   STORE_EVENTS,
   STORE_HABIT_TEMPLATES,
   STORE_HABIT_EXECUTIONS,
+  STORE_TASK_TIMER_SESSIONS,
 } from "../app/constants.js";
+
+function ensureTaskTimerSessionStore(db, upgradeTx = null) {
+  if (!db.objectStoreNames.contains(STORE_TASK_TIMER_SESSIONS)) {
+    const s = db.createObjectStore(STORE_TASK_TIMER_SESSIONS, { keyPath: "id" });
+    s.createIndex("by_day", "day", { unique: false });
+    s.createIndex("by_day_status", ["day", "status"], { unique: false });
+    s.createIndex("by_day_task", ["day", "taskId"], { unique: false });
+    s.createIndex("by_day_task_status", ["day", "taskId", "status"], { unique: false });
+    return;
+  }
+
+  if (!upgradeTx) return;
+  const s = upgradeTx.objectStore(STORE_TASK_TIMER_SESSIONS);
+  if (!s.indexNames.contains("by_day")) {
+    s.createIndex("by_day", "day", { unique: false });
+  }
+  if (!s.indexNames.contains("by_day_status")) {
+    s.createIndex("by_day_status", ["day", "status"], { unique: false });
+  }
+  if (!s.indexNames.contains("by_day_task")) {
+    s.createIndex("by_day_task", ["day", "taskId"], { unique: false });
+  }
+  if (!s.indexNames.contains("by_day_task_status")) {
+    s.createIndex("by_day_task_status", ["day", "taskId", "status"], { unique: false });
+  }
+}
 
 export function applySchema(db, oldVersion, newVersion, upgradeTx = null) {
   // v1: criação inicial
@@ -91,5 +118,15 @@ export function applySchema(db, oldVersion, newVersion, upgradeTx = null) {
         habitsStore.createIndex("by_category_name", ["category", "name"], { unique: false });
       }
     }
+  }
+
+  // v4: sessoes de timer por task
+  if (oldVersion < 4) {
+    ensureTaskTimerSessionStore(db, upgradeTx);
+  }
+
+  // v8: recovery consolidado para garantir store/indexes de timer em bases legadas.
+  if (oldVersion < 8) {
+    ensureTaskTimerSessionStore(db, upgradeTx);
   }
 }

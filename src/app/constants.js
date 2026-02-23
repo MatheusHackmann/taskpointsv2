@@ -4,7 +4,7 @@ export const APP_NAME = "TaskPoints PRO";
 
 // IndexedDB
 export const DB_NAME = "taskpoints_db";
-export const DB_VERSION = 3;
+export const DB_VERSION = 8;
 
 // Object stores
 export const STORE_META = "meta";
@@ -16,6 +16,7 @@ export const STORE_EVENTS = "events";
 // ✅ NOVO: Hábitos
 export const STORE_HABIT_TEMPLATES = "habitTemplates";
 export const STORE_HABIT_EXECUTIONS = "habitExecutions";
+export const STORE_TASK_TIMER_SESSIONS = "taskTimerSessions";
 
 // Meta keys
 export const META_KEY_SCHEMA = "schema";
@@ -58,6 +59,10 @@ export const EVENT = Object.freeze({
   TASK_DELETE: "task.delete",
   TASK_CATEGORY_UPDATE: "task.category.update",
   TASK_REORDER: "task.reorder",
+  TASK_TIMER_STARTED: "task.timer.started",
+  TASK_TIMER_PAUSED: "task.timer.paused",
+  TASK_TIMER_RESUMED: "task.timer.resumed",
+  TASK_TIMER_STOPPED: "task.timer.stopped",
 
   REWARD_CREATE: "reward.create",
   REWARD_DELETE: "reward.delete",

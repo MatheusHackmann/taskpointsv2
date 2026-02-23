@@ -6,9 +6,12 @@ import { STORE_DAYS } from "./constants.js";
  * Estado em memória do app (não persistido).
  * Mantemos aqui referências úteis, cache e a conexão do IndexedDB.
  */
-export function initAppState({ db }) {
+export function initAppState({ db, features = {} }) {
   return {
     db,
+    features: {
+      taskTimerEnabled: !!features.taskTimerEnabled,
+    },
 
     // Dia selecionado (YYYY-MM-DD). Carregado no bootstrap.
     currentDay: null,

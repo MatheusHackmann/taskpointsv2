@@ -82,6 +82,26 @@ export async function logRewardCreate(state, { rewardId, name, cost }) {
   );
 }
 
+export async function logTaskTimerStarted(state, payload) {
+  validateTaskTimerEventPayload(payload);
+  return logEvent(state, EVENT.TASK_TIMER_STARTED, payload, { day: payload?.when?.day || state.currentDay });
+}
+
+export async function logTaskTimerPaused(state, payload) {
+  validateTaskTimerEventPayload(payload);
+  return logEvent(state, EVENT.TASK_TIMER_PAUSED, payload, { day: payload?.when?.day || state.currentDay });
+}
+
+export async function logTaskTimerResumed(state, payload) {
+  validateTaskTimerEventPayload(payload);
+  return logEvent(state, EVENT.TASK_TIMER_RESUMED, payload, { day: payload?.when?.day || state.currentDay });
+}
+
+export async function logTaskTimerStopped(state, payload) {
+  validateTaskTimerEventPayload(payload);
+  return logEvent(state, EVENT.TASK_TIMER_STOPPED, payload, { day: payload?.when?.day || state.currentDay });
+}
+
 export async function logTaskCategoryUpdate(state, { taskId, day, beforeCategory, afterCategory }) {
   return logEvent(
     state,
@@ -290,4 +310,35 @@ export async function getPenalizedPointsForDay(state, dayKey = state.currentDay)
 export async function listEventsForDay(state, dayKey = state.currentDay) {
   if (!dayKey) return [];
   return listEventsByDay(state.db, dayKey);
+}
+
+export function validateTaskTimerEventPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Payload de timer invalido.");
+  }
+
+  const hasWho = typeof payload.who === "string" && payload.who.trim().length > 0;
+  const hasWhat = typeof payload.what === "string" && payload.what.trim().length > 0;
+  const hasWhen = payload.when && typeof payload.when === "object";
+  const hasContext = payload.context && typeof payload.context === "object";
+  const hasOutcome = payload.outcome && typeof payload.outcome === "object";
+
+  if (!hasWho || !hasWhat || !hasWhen || !hasContext || !hasOutcome) {
+    throw new Error("Payload de timer deve conter who/what/when/context/outcome.");
+  }
+
+  const hasDurations =
+    Number.isFinite(Number(payload?.outcome?.activeDurationMs)) &&
+    Number.isFinite(Number(payload?.outcome?.pausedDurationMs)) &&
+    Number.isFinite(Number(payload?.outcome?.totalDurationMs));
+  if (!hasDurations) {
+    throw new Error("Payload de timer deve conter duracoes numericas (active/paused/total).");
+  }
+
+  const validReason =
+    payload.what !== "task_timer_stopped" ||
+    ["completed", "deleted", "manual"].includes(String(payload?.outcome?.reason || ""));
+  if (!validReason) {
+    throw new Error("Reason de task_timer_stopped invalido.");
+  }
 }

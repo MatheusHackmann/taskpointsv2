@@ -112,6 +112,20 @@ export const FEEDBACK_TOASTS = {
       message: `"${name || "Task"}" iniciada.`,
     };
   },
+  taskTimerPaused() {
+    return {
+      tone: "info",
+      title: "Cronometro pausado",
+      message: "A contagem da tarefa foi pausada.",
+    };
+  },
+  taskTimerResumed() {
+    return {
+      tone: "success",
+      title: "Cronometro retomado",
+      message: "A contagem da tarefa voltou a correr.",
+    };
+  },
   taskDeleted(name) {
     return {
       tone: "warning",
@@ -197,4 +211,3 @@ export const FEEDBACK_TOASTS = {
     };
   },
 };
-

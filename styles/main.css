@@ -1029,14 +1029,44 @@ input::placeholder {
   accent-color: var(--primary);
 }
 
-.started-badge {
-  border: 1px solid var(--line);
-  background: var(--bg-muted);
+.task-timer-footer {
+  margin-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--line) 86%, transparent);
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
   color: var(--text-soft);
+}
+
+.task-timer-footer-started {
+  color: var(--text-muted);
+}
+
+.task-timer-footer.active {
+  color: color-mix(in srgb, var(--primary) 62%, var(--text));
+}
+
+.task-timer-footer.paused {
+  color: color-mix(in srgb, var(--warning) 74%, var(--text));
+}
+
+.task-timer-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-timer-live {
+  font-family: "Consolas", "SFMono-Regular", Menlo, Monaco, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  padding: 3px 8px;
+  background: color-mix(in srgb, var(--bg-panel) 85%, var(--bg-soft));
+  border: 1px solid color-mix(in srgb, var(--line) 80%, var(--bg-soft));
 }
 
 .task-actions {
@@ -1092,6 +1122,26 @@ input::placeholder {
 
 .task-delete:hover {
   color: #fff;
+}
+
+.task-timer-toggle {
+  width: auto !important;
+  min-width: 72px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong) !important;
+  background: color-mix(in srgb, var(--bg-soft) 72%, var(--bg-panel)) !important;
+  color: var(--text) !important;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.task-timer-toggle.active {
+  border-color: color-mix(in srgb, var(--warning) 52%, var(--line)) !important;
+}
+
+.task-timer-toggle.paused {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line)) !important;
 }
 
 .task-info-wrap {

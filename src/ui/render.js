@@ -2,6 +2,7 @@
 // Renderizacao principal da UI (days/tasks/rewards/progress) + confetti e sons
 
 import { UI } from "../app/constants.js";
+import { isTaskTimerEnabled } from "../app/featureFlags.js";
 import { $, clear, escapeHtml } from "./dom.js";
 
 import { dayKeyFromDate, formatDayDM, formatDayDMY, formatDayTitle, formatTimeHHMM, formatDateTimeDMYHM } from "../domain/dates.js";
@@ -10,6 +11,7 @@ import { getCategoryLabel, normalizeCategory } from "../domain/categories.js";
 
 import { listDays, getDay } from "../storage/repositories/daysRepo.js";
 import { getTasksForCurrentDay } from "../domain/tasks.js";
+import { getTaskTimerState } from "../domain/taskTimers.js";
 import { getRewardsCatalogWithDynamicCost, listRedeemedRewardsToday } from "../domain/rewards.js";
 import {
   getWeeklyProgress,
@@ -28,6 +30,7 @@ import {
 } from "../domain/habits.js";
 
 let audioContext = null;
+let taskTimerTickerId = null;
 
 function ensureAudio() {
   if (!audioContext) {
@@ -129,6 +132,7 @@ export async function renderApp(state) {
   await renderWeeklyGoal(state);
   await renderHabitsSection(state);
   await renderTasks(state);
+  syncTaskTimerTicker();
   await renderProgress(state);
 }
 
@@ -270,6 +274,11 @@ async function renderTasks(state) {
     getTasksForCurrentDay(state),
     listEventsForDay(state, state.currentDay),
   ]);
+  const timerEnabled = isTaskTimerEnabled(state);
+  const timerStates = timerEnabled
+    ? await Promise.all(tasks.map((task) => getTaskTimerState(state, task.id, state.currentDay)))
+    : [];
+  const timerStateByTaskId = new Map(tasks.map((task, index) => [task.id, timerStates[index] || null]));
   const taskHistoryById = buildTaskHistoryById(events);
 
   const pendingEl = $(UI.PENDING_TASKS);
@@ -279,6 +288,7 @@ async function renderTasks(state) {
 
   tasks.forEach((t, index) => {
     const taskCategory = normalizeCategory(t.category);
+    const timerState = timerStateByTaskId.get(t.id);
     const isPendingLocked = readOnlyDay || (!t.completed && isPendingTaskLockedByDayTurn(t));
     const div = document.createElement("div");
     div.className = "card" + (t.completed ? " completed" : "") + (isPendingLocked ? " locked" : "");
@@ -291,6 +301,7 @@ async function renderTasks(state) {
       : `
     <div class="task-actions">
       <button class="task-start" type="button" data-task-id="${escapeHtml(t.id)}" ${t.startedAt || isPendingLocked ? "disabled" : ""} title="${isPendingLocked ? "Dia encerrado" : (t.startedAt ? "Ja iniciada" : "Iniciar task")}">&#9654;</button>
+      ${renderTaskTimerToggleButton(t, timerState, isPendingLocked)}
       <button class="task-delete" type="button" data-task-id="${escapeHtml(t.id)}" ${isPendingLocked ? "disabled" : ""} title="${isPendingLocked ? "Dia encerrado" : "Excluir task"}">&#10005;</button>
     </div>
       `;
@@ -306,16 +317,13 @@ async function renderTasks(state) {
       <span class="priority-flag ${escapeHtml(t.priority)}"></span>
       <input class="task-toggle" type="checkbox" ${t.completed ? "checked" : ""} ${isPendingLocked ? "disabled" : ""} data-task-id="${escapeHtml(t.id)}">
 
-      ${!t.completed && t.startedAt 
-        ? `<span class="started-badge" title="Task iniciada">Hora: ${escapeHtml(formatTimeHHMM(t.startedAt))}</span>` 
-        : ""}
-
       <span class="task-title">${escapeHtml(t.name)} (+${Number(t.points) || 0})${isPendingLocked ? ' <span class="lock-badge">Dia encerrado</span>' : ""}</span>
       ${categoryBadgeHtml}
     </div>
 
     ${actionsHtml}
   </div>
+  ${renderTaskTimerBadge(t, timerState)}
 `;
 
     (t.completed ? completedEl : pendingEl).appendChild(div);
@@ -377,6 +385,105 @@ async function renderHabitsSection(state) {
       : `+${increment} ${unit} por clique • +${points} pts • Hoje: ${totalValue} ${unit}`;
 
     wrap.appendChild(btn);
+  });
+}
+
+function renderTaskTimerToggleButton(task, timerState, isPendingLocked) {
+  if (task.completed || !task.startedAt) return "";
+  if (!timerState || !timerState.enabled || timerState.status === "idle" || timerState.status === "disabled") return "";
+
+  const paused = timerState.status === "paused";
+  const action = paused ? "resume" : "pause";
+  const label = paused ? "Retomar" : "Pausar";
+  const title = paused ? "Retomar cronometro" : "Pausar cronometro";
+
+  return `
+    <button
+      class="task-timer-toggle ${paused ? "paused" : "active"}"
+      type="button"
+      data-task-id="${escapeHtml(task.id)}"
+      data-action="${escapeHtml(action)}"
+      ${isPendingLocked ? "disabled" : ""}
+      title="${isPendingLocked ? "Dia encerrado" : title}"
+    >${label}</button>
+  `;
+}
+
+function renderTaskTimerBadge(task, timerState) {
+  if (task.completed || !task.startedAt) return "";
+  if (!timerState || !timerState.enabled || timerState.status === "idle" || timerState.status === "disabled") {
+    return `
+      <div class="task-timer-footer task-timer-footer-started" title="Task iniciada">
+        <span>Iniciada em ${escapeHtml(formatTimeHHMM(task.startedAt))}</span>
+      </div>
+    `;
+  }
+
+  const paused = timerState.status === "paused";
+  const clock = formatDurationClock(timerState.totalDurationMs);
+  const active = formatDurationClock(timerState.activeDurationMs);
+  const pausedTime = formatDurationClock(timerState.pausedDurationMs);
+  const pauseCount = Number(timerState.pauseCount || 0);
+  const renderedAt = Date.now();
+
+  return `
+    <div
+      class="task-timer-footer ${paused ? "paused" : "active"} js-task-timer-badge"
+      title="Cronometro da task"
+      data-status="${escapeHtml(timerState.status)}"
+      data-base-active-ms="${Number(timerState.activeDurationMs) || 0}"
+      data-base-paused-ms="${Number(timerState.pausedDurationMs) || 0}"
+      data-base-total-ms="${Number(timerState.totalDurationMs) || 0}"
+      data-rendered-at-ms="${renderedAt}"
+    >
+      <span class="task-timer-metric">Total <span class="task-timer-live js-task-timer-live">${escapeHtml(clock)}</span></span>
+      <span class="task-timer-metric">Ativo <span class="js-task-timer-active">${escapeHtml(active)}</span></span>
+      <span class="task-timer-metric">Pausado <span class="js-task-timer-paused">${escapeHtml(pausedTime)}</span></span>
+      <span class="task-timer-metric">Pausas ${pauseCount}</span>
+    </div>
+  `;
+}
+
+function syncTaskTimerTicker() {
+  const hasRunningTimers = !!document.querySelector('.js-task-timer-badge[data-status="active"], .js-task-timer-badge[data-status="paused"]');
+
+  if (!hasRunningTimers) {
+    if (taskTimerTickerId) {
+      clearInterval(taskTimerTickerId);
+      taskTimerTickerId = null;
+    }
+    return;
+  }
+
+  if (taskTimerTickerId) return;
+
+  taskTimerTickerId = setInterval(() => {
+    updateTaskTimerBadgesRealtime();
+  }, 1000);
+}
+
+function updateTaskTimerBadgesRealtime() {
+  const badges = document.querySelectorAll(".js-task-timer-badge");
+  const nowMs = Date.now();
+
+  badges.forEach((badge) => {
+    const status = String(badge.dataset.status || "");
+    const baseActiveMs = Number(badge.dataset.baseActiveMs || 0);
+    const basePausedMs = Number(badge.dataset.basePausedMs || 0);
+    const baseTotalMs = Number(badge.dataset.baseTotalMs || 0);
+    const renderedAtMs = Number(badge.dataset.renderedAtMs || nowMs);
+    const deltaMs = Math.max(0, nowMs - renderedAtMs);
+
+    const activeMs = status === "active" ? baseActiveMs + deltaMs : baseActiveMs;
+    const pausedMs = status === "paused" ? basePausedMs + deltaMs : basePausedMs;
+    const totalMs = (status === "active" || status === "paused") ? baseTotalMs + deltaMs : baseTotalMs;
+
+    const liveEl = badge.querySelector(".js-task-timer-live");
+    const activeEl = badge.querySelector(".js-task-timer-active");
+    const pausedEl = badge.querySelector(".js-task-timer-paused");
+    if (liveEl) liveEl.textContent = formatDurationClock(totalMs);
+    if (activeEl) activeEl.textContent = formatDurationClock(activeMs);
+    if (pausedEl) pausedEl.textContent = formatDurationClock(pausedMs);
   });
 }
 
@@ -506,6 +613,14 @@ function buildReopenCycles(history) {
 
 function formatTaskDateTime(isoTs) {
   return formatDateTimeDMYHM(isoTs);
+}
+
+function formatDurationClock(msValue) {
+  const totalSeconds = Math.max(0, Math.floor((Number(msValue) || 0) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 async function renderProgress(state) {
